@@ -157,7 +157,6 @@ def parse_timestamp(timestamp_str):
     return (h * 3600 + m * 60 + s) * 1000
 
 def process_audio_oneshot(file_path):
-    """Process entire audio file in one shot using Whisper API"""
     try:
         manager = TranscriptionManager()
         
@@ -209,9 +208,8 @@ def process_audio_oneshot(file_path):
                 # Add debug info for Whisper response
                 st.info(f"""
                     Whisper Response Debug:
-                    - Detected language: {transcription.get('detected_language', 'N/A')}
                     - Number of segments: {len(transcription.segments)}
-                    - Duration: {transcription.duration if hasattr(transcription, 'duration') else 'N/A'}
+                    - Duration: {transcription.duration}
                 """)
                 
                 # Format the transcription with timestamps
