@@ -5,6 +5,7 @@ import tempfile
 import os
 import gc
 import math
+from pydub import AudioSegment
 
 def process_long_audio(file_path):
     # Initialize components with adjusted settings
@@ -153,6 +154,52 @@ def parse_timestamp(timestamp_str):
     """Convert HH:MM:SS timestamp to milliseconds"""
     h, m, s = map(int, timestamp_str.split(':'))
     return (h * 3600 + m * 60 + s) * 1000
+
+def process_audio_oneshot(file_path):
+    """Process entire audio file in one shot using Whisper API"""
+    try:
+        manager = TranscriptionManager()
+        
+        with st.spinner('Processing entire file with Whisper API...'):
+            # Load audio file
+            audio = AudioSegment.from_file(file_path)
+            
+            # Create a single chunk with entire duration
+            chunk = {
+                'audio': audio,
+                'start_time': 0,
+                'end_time': len(audio)
+            }
+            
+            # Get Whisper transcription
+            whisper_result = manager.transcribe_chunk(chunk)
+            
+            if whisper_result:
+                st.success("Transcription completed!")
+                
+                # Create tabs for different viewing options
+                formatted_tab, raw_tab = st.tabs(["Formatted View", "Raw Text"])
+                
+                with formatted_tab:
+                    st.markdown("### Whisper Transcription")
+                    for line in whisper_result['text'].split('\n'):
+                        if line.strip():
+                            st.text(line)
+                
+                with raw_tab:
+                    st.text(whisper_result['text'])
+                
+                # Download button
+                st.download_button(
+                    label="Download Transcription",
+                    data=whisper_result['text'],
+                    file_name="whisper_transcription.txt",
+                    mime="text/plain"
+                )
+                
+    except Exception as e:
+        st.error(f"Error in one-shot processing: {str(e)}")
+        return None
 
 def main():
     st.title("Long Audio Transcription - Roman Urdu")
