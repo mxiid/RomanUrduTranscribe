@@ -8,7 +8,7 @@ import math
 
 def process_long_audio(file_path):
     # Initialize components with adjusted settings
-    splitter = AudioSplitter(max_size_mb=24, overlap_seconds=5)
+    splitter = AudioSplitter(max_size_mb=24, overlap_seconds=10)
     manager = TranscriptionManager()
     
     try:
@@ -17,7 +17,7 @@ def process_long_audio(file_path):
         
         # Calculate chunks based on minutes
         minutes = total_duration / (60 * 1000)  # Convert ms to minutes
-        chunk_count = math.ceil(minutes / 5)  # Split into 5-minute chunks
+        chunk_count = math.ceil(minutes / 10)  # Changed to 10-minute chunks
         
         # Create chunks generator
         chunks_generator = splitter.get_chunks_info(total_duration)
