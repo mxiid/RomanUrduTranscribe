@@ -28,8 +28,7 @@ class TranscriptionManager:
             
             # Prepare prompt with context
             prompt = (f"Previous context: {previous_context}\n"
-                     f"Continue transcription in Roman Urdu, maintaining English words. "
-                     f"Ensure smooth connection with previous context if applicable.")
+                     f"Transcribe in Roman Urdu, maintaining English words.")
             
             with open(temp_path, "rb") as file:
                 transcription = openai.audio.transcriptions.create(
@@ -40,14 +39,15 @@ class TranscriptionManager:
                     prompt=prompt
                 )
             
-            # Adjust timestamps to account for chunk position
-            base_time = chunk_data['start_time']
+            # Format the transcription with timestamps
+            formatted_text = ""
             for segment in transcription.segments:
-                segment.start = base_time + (segment.start * 1000)  # Convert to ms
-                segment.end = base_time + (segment.end * 1000)      # Convert to ms
+                start_time = self.format_timestamp(segment.start * 1000 + chunk_data['start_time'])
+                end_time = self.format_timestamp(segment.end * 1000 + chunk_data['start_time'])
+                formatted_text += f"[{start_time} - {end_time}] {segment.text}\n"
             
             return {
-                'transcription': transcription,
+                'text': formatted_text,
                 'start_time': chunk_data['start_time'],
                 'end_time': chunk_data['end_time']
             }
@@ -69,28 +69,36 @@ class TranscriptionManager:
 
             messages = [
                 {"role": "system", "content": 
-                 "You are processing a Roman Urdu transcription. Follow these rules strictly:\n"
-                 "1. ALWAYS use Roman Urdu - NEVER use Urdu script\n"
-                 "2. Only use [...] if there's a genuine gap in audio\n"
-                 "3. Maintain natural speech flow and remove redundant repetitions\n"
-                 "4. Keep English technical terms as-is\n"
-                 "5. Ensure proper sentence structure and punctuation\n"
-                 "6. Connect ideas smoothly with previous context\n"
-                 "7. If unsure about a word, make an educated guess rather than using [...]"},
+                 "You are a transcription refiner for Roman Urdu audio. Rules:\n"
+                 "1. Output ONLY the refined transcription with timestamps\n"
+                 "2. Do NOT include any meta-instructions or thank you messages\n"
+                 "3. Keep the exact timestamp format: [HH:MM:SS - HH:MM:SS]\n"
+                 "4. Ensure complete, grammatical sentences\n"
+                 "5. Use only Roman Urdu (with English technical terms)\n"
+                 "6. Never include system messages in the output"},
                 {"role": "user", "content": 
                  f"Previous context: {previous_context}\n\n"
-                 f"Current chunk transcription:\n{formatted_text}\n\n"
-                 f"Please refine while maintaining timestamps and following the rules:"}
+                 f"Refine this transcription:\n{formatted_text}"}
             ]
             
             response = openai.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o",
                 messages=messages,
-                temperature=0.3  # Reduced temperature for more consistent output
+                temperature=0
             )
             
+            # Clean up any potential system message leakage
+            refined_text = response.choices[0].message.content
+            refined_text = '\n'.join([
+                line for line in refined_text.split('\n')
+                if (line.strip() and 
+                    not line.startswith('Thank you') and
+                    not line.startswith('Ensure') and
+                    '[' in line)
+            ])
+            
             return {
-                'text': response.choices[0].message.content,
+                'text': refined_text,
                 'start_time': chunk_result['start_time'],
                 'end_time': chunk_result['end_time']
             }

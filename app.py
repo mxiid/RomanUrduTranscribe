@@ -26,7 +26,8 @@ def process_long_audio(file_path):
         
         # Process chunks with progress bar
         progress_bar = st.progress(0)
-        transcription_results = []
+        whisper_results = []
+        gpt_results = []
         previous_context = ""
         
         processed_chunks = 0
@@ -41,23 +42,21 @@ def process_long_audio(file_path):
                     # Load and process single chunk
                     chunk = splitter.load_chunk(file_path, start_ms, end_ms)
                     
-                    # Transcribe chunk
-                    chunk_result = manager.transcribe_chunk(chunk, previous_context)
+                    # Get Whisper transcription
+                    whisper_result = manager.transcribe_chunk(chunk, previous_context)
+                    whisper_results.append(whisper_result)
                     
-                    # Refine transcription
-                    refined_result = manager.refine_chunk(chunk_result, previous_context)
-                    
-                    # Store result
-                    transcription_results.append(refined_result)
+                    # Get GPT-4 refined version
+                    gpt_result = manager.refine_chunk(whisper_result, previous_context)
+                    gpt_results.append(gpt_result)
                     
                     # Update context for next chunk
                     previous_context = '\n'.join([
                         line.split('] ')[-1] 
-                        for line in refined_result['text'].split('\n')
+                        for line in gpt_result['text'].split('\n')
                         if line.strip()
-                    ])[-500:]  # Keep last 500 characters
+                    ])[-500:]
                     
-                    # Force memory cleanup
                     del chunk
                     gc.collect()
                     
@@ -72,10 +71,47 @@ def process_long_audio(file_path):
                 st.warning("Processed more chunks than expected. Please check the audio splitting logic.")
                 break
         
-        # Combine results and handle overlaps
-        final_transcription = combine_transcriptions(transcription_results)
+        # Combine results
+        whisper_transcription = combine_transcriptions(whisper_results)
+        gpt_transcription = combine_transcriptions(gpt_results)
         
-        return final_transcription
+        if whisper_transcription and gpt_transcription:
+            st.success("Transcription completed!")
+            
+            # Create tabs for different viewing options
+            whisper_tab, gpt_tab, raw_tab = st.tabs(["Whisper Output", "GPT Refined", "Raw Text"])
+            
+            with whisper_tab:
+                st.markdown("### Original Whisper Output")
+                for line in whisper_transcription.split('\n'):
+                    if line.strip():
+                        st.text(line)
+            
+            with gpt_tab:
+                st.markdown("### GPT-4 Refined Version")
+                for line in gpt_transcription.split('\n'):
+                    if line.strip():
+                        st.text(line)
+            
+            with raw_tab:
+                st.text(gpt_transcription)
+            
+            # Download buttons for both versions
+            col1, col2 = st.columns(2)
+            with col1:
+                st.download_button(
+                    label="Download Whisper Version",
+                    data=whisper_transcription,
+                    file_name="whisper_transcription.txt",
+                    mime="text/plain"
+                )
+            with col2:
+                st.download_button(
+                    label="Download GPT Version",
+                    data=gpt_transcription,
+                    file_name="gpt_transcription.txt",
+                    mime="text/plain"
+                )
         
     except Exception as e:
         st.error(f"Error processing audio: {str(e)}")
