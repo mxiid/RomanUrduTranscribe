@@ -4,6 +4,7 @@ from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+import streamlit as st
 
 load_dotenv()
 
@@ -62,7 +63,7 @@ class TranscriptionManager:
     def refine_chunk(self, chunk_result: Dict, previous_context: str = "") -> Dict:
         """Refine transcription with GPT-4, maintaining timestamps"""
         try:
-            st.info("Sending to GPT-4 for refinement...")
+            print("Sending to GPT-4 for refinement...")
             formatted_text = chunk_result['text']
 
             messages = [
@@ -86,7 +87,7 @@ class TranscriptionManager:
                 timeout=180  # 3 minute timeout
             )
             
-            st.info("Received GPT-4 response, cleaning up...")
+            print("Received GPT-4 response, cleaning up...")
             
             # Clean up any potential system message leakage
             refined_text = response.choices[0].message.content
@@ -105,6 +106,6 @@ class TranscriptionManager:
             }
             
         except Exception as e:
-            st.error(f"GPT-4 refinement error: {str(e)}")
+            print(f"GPT-4 refinement error: {str(e)}")
             # If GPT-4 fails, return the original Whisper transcription
             return chunk_result
