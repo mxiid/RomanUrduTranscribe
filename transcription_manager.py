@@ -59,13 +59,8 @@ class TranscriptionManager:
     def refine_chunk(self, chunk_result: Dict, previous_context: str = "") -> Dict:
         """Refine transcription with GPT-4, maintaining timestamps"""
         try:
-            # Prepare timestamped text for GPT-4
-            segments = chunk_result['transcription'].segments
-            formatted_text = ""
-            for segment in segments:
-                start_time = self.format_timestamp(segment.start)
-                end_time = self.format_timestamp(segment.end)
-                formatted_text += f"[{start_time} - {end_time}] {segment.text}\n"
+            # Use the text directly from chunk_result instead of accessing 'transcription'
+            formatted_text = chunk_result['text']
 
             messages = [
                 {"role": "system", "content": 
