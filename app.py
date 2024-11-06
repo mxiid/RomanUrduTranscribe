@@ -6,6 +6,7 @@ import os
 import gc
 import math
 from pydub import AudioSegment
+import openai
 
 def process_long_audio(file_path):
     # Initialize components with adjusted settings
@@ -161,41 +162,66 @@ def process_audio_oneshot(file_path):
         manager = TranscriptionManager()
         
         with st.spinner('Processing entire file with Whisper API...'):
-            # Load audio file
+            # Convert to WAV with correct parameters for Whisper
+            temp_path = "temp_whisper.wav"
             audio = AudioSegment.from_file(file_path)
+            audio = audio.set_channels(1).set_frame_rate(16000)
+            audio.export(
+                temp_path,
+                format="wav",
+                parameters=[
+                    "-ac", "1",     # mono
+                    "-ar", "16000"  # 16kHz
+                ]
+            )
             
-            # Create a single chunk with entire duration
-            chunk = {
-                'audio': audio,
-                'start_time': 0,
-                'end_time': len(audio)
-            }
+            file_size_mb = os.path.getsize(temp_path) / (1024 * 1024)
+            st.info(f"Processed file size: {file_size_mb:.2f}MB")
             
-            # Get Whisper transcription
-            whisper_result = manager.transcribe_chunk(chunk)
-            
-            if whisper_result:
-                st.success("Transcription completed!")
+            try:
+                with open(temp_path, "rb") as file:
+                    transcription = openai.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=file,
+                        response_format="verbose_json",
+                        language="ur"
+                    )
                 
-                # Create tabs for different viewing options
-                formatted_tab, raw_tab = st.tabs(["Formatted View", "Raw Text"])
+                # Format the transcription with timestamps
+                formatted_text = ""
+                for segment in transcription.segments:
+                    start_time = manager.format_timestamp(segment.start * 1000)
+                    end_time = manager.format_timestamp(segment.end * 1000)
+                    formatted_text += f"[{start_time} - {end_time}] {segment.text}\n"
                 
-                with formatted_tab:
-                    st.markdown("### Whisper Transcription")
-                    for line in whisper_result['text'].split('\n'):
-                        if line.strip():
-                            st.text(line)
+                result = {'text': formatted_text}
                 
-                with raw_tab:
-                    st.text(whisper_result['text'])
-                
-                # Download button
-                st.download_button(
-                    label="Download Transcription",
-                    data=whisper_result['text'],
-                    file_name="whisper_transcription.txt",
-                    mime="text/plain"
-                )
+                if result:
+                    st.success("Transcription completed!")
+                    
+                    # Create tabs for different viewing options
+                    formatted_tab, raw_tab = st.tabs(["Formatted View", "Raw Text"])
+                    
+                    with formatted_tab:
+                        st.markdown("### Whisper Transcription")
+                        for line in result['text'].split('\n'):
+                            if line.strip():
+                                st.text(line)
+                    
+                    with raw_tab:
+                        st.text(result['text'])
+                    
+                    # Download button
+                    st.download_button(
+                        label="Download Transcription",
+                        data=result['text'],
+                        file_name="whisper_transcription.txt",
+                        mime="text/plain"
+                    )
+            finally:
+                # Clean up temp file
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
                 
     except Exception as e:
         st.error(f"Error in one-shot processing: {str(e)}")
