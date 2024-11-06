@@ -202,7 +202,12 @@ def process_audio_oneshot(file_path):
                         response_format="verbose_json",
                         language="hi",
                         temperature=0.2,
-                        prompt="This is a business conversation in Hindi/Urdu. Please transcribe in Roman Urdu, maintaining English terms."
+                        prompt=(
+                            "Acha, toh aap business ke baare mein baat kar rahe hain. "
+                            "Main samajh rahi hoon. Market research ke mutabiq... "
+                            "Hamari company mein yeh process follow kiya jata hai. "
+                            "Stakeholders ko inform karna zaroori hai."
+                        )
                     )
                 
                 # Add debug info for Whisper response
