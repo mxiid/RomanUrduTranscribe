@@ -161,14 +161,43 @@ def process_audio_oneshot(file_path):
     try:
         manager = TranscriptionManager()
         
+        # Debug: Check audio file
+        try:
+            audio = AudioSegment.from_file(file_path)
+            st.info(f"""
+                Audio file debug info:
+                - Duration: {len(audio)/1000:.2f} seconds
+                - Channels: {audio.channels}
+                - Sample Rate: {audio.frame_rate} Hz
+                - Sample Width: {audio.sample_width} bytes
+            """)
+            
+            # Save a copy of the file we're sending to Whisper
+            debug_path = "debug_whisper_input.mp3"
+            audio.export(debug_path, format="mp3")
+            
+            # Add download button for the debug file
+            with open(debug_path, 'rb') as debug_file:
+                st.download_button(
+                    label="Download Debug Audio File",
+                    data=debug_file,
+                    file_name="debug_whisper_input.mp3",
+                    mime="audio/mp3"
+                )
+            
+        except Exception as e:
+            st.error(f"Error reading audio file: {str(e)}")
+            return None
+            
         with st.spinner('Processing with Whisper API...'):
             try:
-                with open(file_path, "rb") as file:
+                with open(debug_path, "rb") as file:
                     transcription = openai.audio.transcriptions.create(
                         model="whisper-1",
                         file=file,
                         response_format="verbose_json",
-                        language="ur"
+                        language="ur",
+                        temperature=0
                     )
                 
                 # Format the transcription with timestamps
@@ -205,6 +234,10 @@ def process_audio_oneshot(file_path):
                     
             except Exception as e:
                 st.error(f"Transcription error: {str(e)}")
+            finally:
+                # Clean up debug file
+                if os.path.exists(debug_path):
+                    os.remove(debug_path)
                 
     except Exception as e:
         st.error(f"Error in processing: {str(e)}")
