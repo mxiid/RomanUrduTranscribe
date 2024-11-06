@@ -215,12 +215,14 @@ def main():
     if uploaded_file:
         # Check file size
         file_size = len(uploaded_file.getvalue())
+        file_size_mb = file_size / (1024 * 1024)
+        
         if file_size > max_file_size:
-            st.error(f"File too large! Maximum size is 500MB. Your file is {file_size / (1024 * 1024):.1f}MB")
+            st.error(f"File too large! Maximum size is 500MB. Your file is {file_size_mb:.1f}MB")
             return
             
         # Show file info
-        st.info(f"File size: {file_size / (1024 * 1024):.1f}MB")
+        st.info(f"File size: {file_size_mb:.1f}MB")
         
         # Create a temporary file with the uploaded content
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp_file:
@@ -228,30 +230,21 @@ def main():
             tmp_file_path = tmp_file.name
         
         try:
-            # Process the audio file
-            final_transcription = process_long_audio(tmp_file_path)
-            
-            if final_transcription:
-                st.success("Transcription completed!")
-                
-                # Create tabs for viewing options
-                view_tab, raw_tab = st.tabs(["Formatted View", "Raw Text"])
-                
-                with view_tab:
-                    for line in final_transcription.split('\n'):
-                        if line.strip():
-                            st.text(line)
-                
-                with raw_tab:
-                    st.text(final_transcription)
-                
-                # Download button
-                st.download_button(
-                    label="Download Transcription",
-                    data=final_transcription,
-                    file_name="full_transcription.txt",
-                    mime="text/plain"
+            # Let user choose processing method if file is small enough
+            if file_size_mb < 24:
+                processing_method = st.radio(
+                    "Choose processing method:",
+                    ["One-shot processing (Whisper only)", "Chunk processing (Whisper + GPT)"],
+                    help="One-shot processing is faster but only uses Whisper. Chunk processing adds GPT refinement but takes longer."
                 )
+                
+                if processing_method == "One-shot processing (Whisper only)":
+                    process_audio_oneshot(tmp_file_path)
+                else:
+                    process_long_audio(tmp_file_path)
+            else:
+                st.info("File size requires chunk processing (Whisper + GPT)")
+                process_long_audio(tmp_file_path)
             
         finally:
             # Clean up
