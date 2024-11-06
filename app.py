@@ -160,32 +160,37 @@ def process_audio_oneshot(file_path):
     try:
         manager = TranscriptionManager()
         
-        # Debug: Check audio file
+        # Debug: Check audio file and trim to start from 2:12
         try:
             audio = AudioSegment.from_file(file_path)
+            
+            # Trim to start from 2:12 (132 seconds)
+            start_time = 132 * 1000  # Convert to milliseconds
+            trimmed_audio = audio[start_time:]
+            
             st.info(f"""
                 Audio file debug info:
-                - Duration: {len(audio)/1000:.2f} seconds
+                - Original Duration: {len(audio)/1000:.2f} seconds
+                - Trimmed Duration: {len(trimmed_audio)/1000:.2f} seconds
                 - Channels: {audio.channels}
                 - Sample Rate: {audio.frame_rate} Hz
-                - Sample Width: {audio.sample_width} bytes
             """)
             
-            # Save a copy of the file we're sending to Whisper
+            # Save trimmed version
             debug_path = "debug_whisper_input.mp3"
-            audio.export(debug_path, format="mp3")
+            trimmed_audio.export(debug_path, format="mp3")
             
             # Add download button for the debug file
             with open(debug_path, 'rb') as debug_file:
                 st.download_button(
-                    label="Download Debug Audio File",
+                    label="Download Trimmed Audio File",
                     data=debug_file,
                     file_name="debug_whisper_input.mp3",
                     mime="audio/mp3"
                 )
             
         except Exception as e:
-            st.error(f"Error reading audio file: {str(e)}")
+            st.error(f"Error processing audio file: {str(e)}")
             return None
             
         with st.spinner('Processing with Whisper API...'):
@@ -197,12 +202,7 @@ def process_audio_oneshot(file_path):
                         response_format="verbose_json",
                         language="hi",
                         temperature=0.2,
-                        prompt=(
-                            "This is a clear business conversation in Hindi/Urdu. "
-                            "The speech starts at 2:12. "
-                            "Please transcribe in Roman Urdu, maintaining English terms. "
-                            "Ignore any silence or background noise."
-                        )
+                        prompt="This is a business conversation in Hindi/Urdu. Please transcribe in Roman Urdu, maintaining English terms."
                     )
                 
                 # Add debug info for Whisper response
@@ -215,8 +215,9 @@ def process_audio_oneshot(file_path):
                 # Format the transcription with timestamps
                 formatted_text = ""
                 for segment in transcription.segments:
-                    start_time = manager.format_timestamp(segment.start * 1000)
-                    end_time = manager.format_timestamp(segment.end * 1000)
+                    # Adjust timestamps to account for trimming
+                    start_time = manager.format_timestamp((segment.start * 1000) + start_time)
+                    end_time = manager.format_timestamp((segment.end * 1000) + start_time)
                     formatted_text += f"[{start_time} - {end_time}] {segment.text}\n"
                 
                 result = {'text': formatted_text}
