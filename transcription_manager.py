@@ -36,7 +36,8 @@ class TranscriptionManager:
                     file=file,
                     response_format="verbose_json",
                     language="ur",
-                    prompt=prompt
+                    prompt=prompt,
+                    timeout=300  # 5 minute timeout
                 )
             
             # Format the transcription with timestamps
@@ -52,6 +53,8 @@ class TranscriptionManager:
                 'end_time': chunk_data['end_time']
             }
             
+        except Exception as e:
+            raise Exception(f"Transcription error: {str(e)}")
         finally:
             # Cleanup temporary file
             Path(temp_path).unlink(missing_ok=True)
@@ -59,7 +62,7 @@ class TranscriptionManager:
     def refine_chunk(self, chunk_result: Dict, previous_context: str = "") -> Dict:
         """Refine transcription with GPT-4, maintaining timestamps"""
         try:
-            # Use the text directly from chunk_result instead of accessing 'transcription'
+            st.info("Sending to GPT-4 for refinement...")
             formatted_text = chunk_result['text']
 
             messages = [
@@ -79,8 +82,11 @@ class TranscriptionManager:
             response = openai.chat.completions.create(
                 model="gpt-4o",
                 messages=messages,
-                temperature=0
+                temperature=0,
+                timeout=180  # 3 minute timeout
             )
+            
+            st.info("Received GPT-4 response, cleaning up...")
             
             # Clean up any potential system message leakage
             refined_text = response.choices[0].message.content
@@ -99,4 +105,6 @@ class TranscriptionManager:
             }
             
         except Exception as e:
-            raise Exception(f"Refinement error: {str(e)}")
+            st.error(f"GPT-4 refinement error: {str(e)}")
+            # If GPT-4 fails, return the original Whisper transcription
+            return chunk_result
