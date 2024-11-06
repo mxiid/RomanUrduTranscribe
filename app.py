@@ -161,28 +161,9 @@ def process_audio_oneshot(file_path):
     try:
         manager = TranscriptionManager()
         
-        with st.spinner('Processing sample segment with Whisper API...'):
-            # Load audio and take first 2 minutes
-            audio = AudioSegment.from_file(file_path)
-            two_minutes = 2 * 60 * 1000  # 2 minutes in milliseconds
-            sample_audio = audio[:two_minutes]  # Take first 2 minutes
-            
-            # Save sample to temp file
-            temp_path = "temp_whisper_sample.mp3"
-            sample_audio.export(
-                temp_path,
-                format="mp3",
-                parameters=[
-                    "-ac", "1",     # mono
-                    "-ar", "16000"  # 16kHz
-                ]
-            )
-            
-            file_size_mb = os.path.getsize(temp_path) / (1024 * 1024)
-            st.info(f"Sample file size: {file_size_mb:.2f}MB")
-            
+        with st.spinner('Processing with Whisper API...'):
             try:
-                with open(temp_path, "rb") as file:
+                with open(file_path, "rb") as file:
                     transcription = openai.audio.transcriptions.create(
                         model="whisper-1",
                         file=file,
@@ -200,14 +181,13 @@ def process_audio_oneshot(file_path):
                 result = {'text': formatted_text}
                 
                 if result:
-                    st.success("Sample transcription completed!")
-                    st.warning("Note: This is only the first 2 minutes of the audio")
+                    st.success("Transcription completed!")
                     
                     # Create tabs for different viewing options
                     formatted_tab, raw_tab = st.tabs(["Formatted View", "Raw Text"])
                     
                     with formatted_tab:
-                        st.markdown("### Whisper Transcription (First 2 Minutes)")
+                        st.markdown("### Whisper Transcription")
                         for line in result['text'].split('\n'):
                             if line.strip():
                                 st.text(line)
@@ -217,18 +197,17 @@ def process_audio_oneshot(file_path):
                     
                     # Download button
                     st.download_button(
-                        label="Download Sample Transcription",
+                        label="Download Transcription",
                         data=result['text'],
-                        file_name="whisper_sample_transcription.txt",
+                        file_name="whisper_transcription.txt",
                         mime="text/plain"
                     )
-            finally:
-                # Clean up temp file
-                if os.path.exists(temp_path):
-                    os.remove(temp_path)
+                    
+            except Exception as e:
+                st.error(f"Transcription error: {str(e)}")
                 
     except Exception as e:
-        st.error(f"Error in sample processing: {str(e)}")
+        st.error(f"Error in processing: {str(e)}")
         return None
 
 def main():
