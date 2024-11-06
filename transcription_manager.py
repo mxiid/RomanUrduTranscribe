@@ -28,8 +28,8 @@ class TranscriptionManager:
             chunk_data['audio'].export(temp_path, format="wav")
             
             # Prepare prompt with context
-            prompt = (f"Previous context: {previous_context}\n"
-                     f"Transcribe in Roman Urdu, maintaining English words.")
+            # prompt = (f"Previous context: {previous_context}\n"
+            #          f"Transcribe in Roman Urdu, maintaining English words.")
             
             with open(temp_path, "rb") as file:
                 transcription = openai.audio.transcriptions.create(
@@ -37,8 +37,8 @@ class TranscriptionManager:
                     file=file,
                     response_format="verbose_json",
                     language="ur",
-                    prompt=prompt,
-                    timeout=300  # 5 minute timeout
+                    prompt="Transcribe this audio in Roman Urdu. Ignore background noise.",
+                    temperature=0.3  # Add some determinism
                 )
             
             # Format the transcription with timestamps
