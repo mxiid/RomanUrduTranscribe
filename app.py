@@ -215,10 +215,15 @@ def process_audio_oneshot(file_path):
                 # Format the transcription with timestamps
                 formatted_text = ""
                 for segment in transcription.segments:
-                    # Adjust timestamps to account for trimming
-                    start_time = manager.format_timestamp((segment.start * 1000) + start_time)
-                    end_time = manager.format_timestamp((segment.end * 1000) + start_time)
-                    formatted_text += f"[{start_time} - {end_time}] {segment.text}\n"
+                    # Convert segment times to milliseconds and add offset
+                    segment_start = int((segment.start * 1000) + start_time)
+                    segment_end = int((segment.end * 1000) + start_time)
+                    
+                    # Format timestamps
+                    start_time_str = manager.format_timestamp(segment_start)
+                    end_time_str = manager.format_timestamp(segment_end)
+                    
+                    formatted_text += f"[{start_time_str} - {end_time_str}] {segment.text}\n"
                 
                 result = {'text': formatted_text}
                 
