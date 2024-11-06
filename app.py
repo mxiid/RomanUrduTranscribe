@@ -231,7 +231,7 @@ def main():
         
         try:
             # Let user choose processing method if file is small enough
-            if file_size_mb < 24:
+            if file_size_mb < 25:
                 processing_method = st.radio(
                     "Choose processing method:",
                     ["One-shot processing (Whisper only)", "Chunk processing (Whisper + GPT)"],
