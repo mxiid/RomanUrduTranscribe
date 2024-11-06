@@ -200,7 +200,7 @@ def process_audio_oneshot(file_path):
                         model="whisper-1",
                         file=file,
                         response_format="verbose_json",
-                        language="hi",
+                        language="ur",
                         temperature=0.2,
                         prompt=(
                             "Acha, toh aap business ke baare mein baat kar rahe hain. "
