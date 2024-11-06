@@ -6,10 +6,10 @@ import wave
 import contextlib
 
 class AudioSplitter:
-    def __init__(self, max_size_mb=25, overlap_seconds=30):
+    def __init__(self, max_size_mb=25, overlap_seconds=5):
         self.max_size_bytes = (max_size_mb * 1024 * 1024) - (1 * 1024 * 1024)
         self.overlap_ms = overlap_seconds * 1000
-        self.chunk_duration_ms = 3 * 60 * 1000  # 3 minutes chunks
+        self.chunk_duration_ms = 5 * 60 * 1000  # 5 minutes chunks
 
     def get_audio_length(self, file_path):
         """Get audio length without loading the entire file"""

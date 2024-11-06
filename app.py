@@ -7,29 +7,26 @@ import gc
 import math
 
 def process_long_audio(file_path):
-    # Initialize components
-    splitter = AudioSplitter(max_size_mb=24, overlap_seconds=30)
+    # Initialize components with adjusted settings
+    splitter = AudioSplitter(max_size_mb=24, overlap_seconds=5)  # Reduced overlap
     manager = TranscriptionManager()
     
     try:
         # Get total duration
         total_duration = splitter.get_audio_length(file_path)
         
-        # Calculate exact number of chunks without materializing generator
-        chunk_count = math.ceil((total_duration) / 
-                              (splitter.chunk_duration_ms - splitter.overlap_ms))
+        # Calculate chunks based on minutes
+        minutes = total_duration / (60 * 1000)  # Convert ms to minutes
+        chunk_count = math.ceil(minutes / 5)  # Split into 5-minute chunks
         
-        # Create generator for chunks
-        chunks_generator = splitter.get_chunks_info(total_duration)
-        
-        st.info(f"Audio will be processed in approximately {chunk_count} chunks")
+        st.info(f"Audio will be processed in {chunk_count} chunks")
         
         # Process chunks with progress bar
         progress_bar = st.progress(0)
         transcription_results = []
         previous_context = ""
         
-        for idx, (start_ms, end_ms) in enumerate(chunks_generator):
+        for idx, (start_ms, end_ms) in enumerate(splitter.get_chunks_info(total_duration)):
             # Update progress (ensure it never exceeds 1.0)
             progress = min(1.0, (idx + 1) / chunk_count)
             progress_bar.progress(progress)
