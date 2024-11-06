@@ -17,10 +17,9 @@ def process_long_audio(file_path):
         
         # Create generator for chunks
         chunks_generator = splitter.get_chunks_info(total_duration)
+        chunks_list = list(chunks_generator)  # Convert generator to list
+        chunk_count = len(chunks_list)  # Get exact number of chunks
         
-        # Initialize progress
-        chunk_count = math.ceil((total_duration - splitter.overlap_ms) / 
-                              (splitter.chunk_duration_ms - splitter.overlap_ms))
         st.info(f"Audio will be processed in approximately {chunk_count} chunks")
         
         # Process chunks with progress bar
@@ -28,9 +27,9 @@ def process_long_audio(file_path):
         transcription_results = []
         previous_context = ""
         
-        for idx, (start_ms, end_ms) in enumerate(chunks_generator):
-            # Update progress
-            progress = (idx + 1) / chunk_count
+        for idx, (start_ms, end_ms) in enumerate(chunks_list):
+            # Update progress (ensure it never exceeds 1.0)
+            progress = min(1.0, (idx + 1) / chunk_count)
             progress_bar.progress(progress)
             
             # Process chunk
