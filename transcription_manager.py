@@ -69,22 +69,24 @@ class TranscriptionManager:
 
             messages = [
                 {"role": "system", "content": 
-                 "You are processing part of a longer transcription. Your task is to:"
-                 "\n1. Maintain Roman Urdu with English code-switching"
-                 "\n2. Ensure smooth connection with previous context"
-                 "\n3. Mark any uncertain connections with [...]"
-                 "\n4. Preserve timestamps exactly as provided [HH:MM:SS - HH:MM:SS]"
-                 "\n5. Keep each timestamped line separate"},
+                 "You are processing a Roman Urdu transcription. Follow these rules strictly:\n"
+                 "1. ALWAYS use Roman Urdu - NEVER use Urdu script\n"
+                 "2. Only use [...] if there's a genuine gap in audio\n"
+                 "3. Maintain natural speech flow and remove redundant repetitions\n"
+                 "4. Keep English technical terms as-is\n"
+                 "5. Ensure proper sentence structure and punctuation\n"
+                 "6. Connect ideas smoothly with previous context\n"
+                 "7. If unsure about a word, make an educated guess rather than using [...]"},
                 {"role": "user", "content": 
                  f"Previous context: {previous_context}\n\n"
                  f"Current chunk transcription:\n{formatted_text}\n\n"
-                 f"Please refine while maintaining timestamps and continuity:"}
+                 f"Please refine while maintaining timestamps and following the rules:"}
             ]
             
             response = openai.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4",
                 messages=messages,
-                temperature=0
+                temperature=0.3  # Reduced temperature for more consistent output
             )
             
             return {
