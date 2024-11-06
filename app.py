@@ -19,6 +19,9 @@ def process_long_audio(file_path):
         minutes = total_duration / (60 * 1000)  # Convert ms to minutes
         chunk_count = math.ceil(minutes / 5)  # Split into 5-minute chunks
         
+        # Create chunks generator
+        chunks_generator = splitter.get_chunks_info(total_duration)
+        
         st.info(f"Audio will be processed in {chunk_count} chunks")
         
         # Process chunks with progress bar
