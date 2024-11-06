@@ -196,9 +196,23 @@ def process_audio_oneshot(file_path):
                         model="whisper-1",
                         file=file,
                         response_format="verbose_json",
-                        language="ur",
-                        temperature=0
+                        language="hi",
+                        temperature=0.2,
+                        prompt=(
+                            "This is a clear business conversation in Hindi/Urdu. "
+                            "The speech starts at 2:12. "
+                            "Please transcribe in Roman Urdu, maintaining English terms. "
+                            "Ignore any silence or background noise."
+                        )
                     )
+                
+                # Add debug info for Whisper response
+                st.info(f"""
+                    Whisper Response Debug:
+                    - Detected language: {transcription.get('detected_language', 'N/A')}
+                    - Number of segments: {len(transcription.segments)}
+                    - Duration: {transcription.duration if hasattr(transcription, 'duration') else 'N/A'}
+                """)
                 
                 # Format the transcription with timestamps
                 formatted_text = ""
