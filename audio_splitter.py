@@ -24,13 +24,18 @@ class AudioSplitter:
 
     def get_chunks_info(self, total_duration_ms):
         """Generate chunk information based on total duration"""
-        chunks = []
         start_ms = 0
         
         while start_ms < total_duration_ms:
             end_ms = min(start_ms + self.chunk_duration_ms, total_duration_ms)
+            if end_ms - start_ms < 1000:  # Skip chunks shorter than 1 second
+                break
             yield (start_ms, end_ms)
             start_ms = end_ms - self.overlap_ms
+            
+            # Safety check
+            if start_ms >= total_duration_ms:
+                break
 
     def load_chunk(self, file_path, start_ms, end_ms):
         """Load a specific chunk of audio"""

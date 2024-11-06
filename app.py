@@ -8,7 +8,7 @@ import math
 
 def process_long_audio(file_path):
     # Initialize components with adjusted settings
-    splitter = AudioSplitter(max_size_mb=24, overlap_seconds=5)  # Reduced overlap
+    splitter = AudioSplitter(max_size_mb=24, overlap_seconds=5)
     manager = TranscriptionManager()
     
     try:
@@ -26,13 +26,14 @@ def process_long_audio(file_path):
         transcription_results = []
         previous_context = ""
         
-        for idx, (start_ms, end_ms) in enumerate(splitter.get_chunks_info(total_duration)):
-            # Update progress (ensure it never exceeds 1.0)
-            progress = min(1.0, (idx + 1) / chunk_count)
+        processed_chunks = 0
+        for start_ms, end_ms in chunks_generator:
+            # Update progress
+            progress = min(0.99, processed_chunks / chunk_count)
             progress_bar.progress(progress)
             
             # Process chunk
-            with st.spinner(f'Processing chunk {idx + 1} of {chunk_count}...'):
+            with st.spinner(f'Processing chunk {processed_chunks + 1} of {chunk_count}...'):
                 try:
                     # Load and process single chunk
                     chunk = splitter.load_chunk(file_path, start_ms, end_ms)
@@ -58,8 +59,15 @@ def process_long_audio(file_path):
                     gc.collect()
                     
                 except Exception as e:
-                    st.error(f"Error processing chunk {idx + 1}: {str(e)}")
+                    st.error(f"Error processing chunk {processed_chunks + 1}: {str(e)}")
                     continue
+            
+            processed_chunks += 1
+            
+            # Safety check - stop if we've processed more chunks than expected
+            if processed_chunks > chunk_count + 1:  # Allow for 1 extra chunk due to rounding
+                st.warning("Processed more chunks than expected. Please check the audio splitting logic.")
+                break
         
         # Combine results and handle overlaps
         final_transcription = combine_transcriptions(transcription_results)
