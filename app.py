@@ -162,14 +162,16 @@ def process_audio_oneshot(file_path):
         manager = TranscriptionManager()
         
         with st.spinner('Processing entire file with Whisper API...'):
-            # Convert to WAV with correct parameters for Whisper
-            temp_path = "temp_whisper.wav"
+            # Convert to MP3 with correct parameters for Whisper
+            temp_path = "temp_whisper.mp3"
             audio = AudioSegment.from_file(file_path)
             audio = audio.set_channels(1).set_frame_rate(16000)
             audio.export(
                 temp_path,
-                format="wav",
+                format="mp3",
                 parameters=[
+                    "-q:a", "9",    # Highest compression
+                    "-b:a", "24k",  # 24kbps bitrate
                     "-ac", "1",     # mono
                     "-ar", "16000"  # 16kHz
                 ]
