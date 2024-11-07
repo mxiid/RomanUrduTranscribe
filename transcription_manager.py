@@ -22,7 +22,7 @@ class TranscriptionManager:
                     model="whisper-1",
                     file=file,
                     response_format="verbose_json",
-                    language="hi",
+                    language="ur",
                     temperature=0,
                     prompt=(
                         "Yeh ek business meeting hai jisme circular debt, power sector, "
@@ -30,6 +30,7 @@ class TranscriptionManager:
                         "baat ho rahi hai. IESCO aur FESCO jaise utilities ke "
                         "problems discuss ho rahe hain. Payment aur debt ke issues "
                         "par focus hai. Har sentence ko Roman Urdu mein transcribe karein."
+                        "Acha start karte hain ke sabse pehle koi bhi sector hai.."
                     ),
                 )
 
@@ -58,7 +59,7 @@ class TranscriptionManager:
                 model="gpt-4o",
                 messages=[
                     {"role": "system", "content": 
-                     "You are a Urdu/Hindi transcription to Roman Urdu/Hindi refiner for business audio.\n"
+                     "You are a Urdu transcription to Roman Urdu refiner for business audio.\n"
                      "Rules:\n"
                      "1. Keep the exact timestamp format: [HH:MM:SS - HH:MM:SS]\n"
                      "2. Ensure complete, grammatical sentences\n"
