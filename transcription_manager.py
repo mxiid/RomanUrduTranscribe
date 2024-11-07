@@ -25,12 +25,14 @@ class TranscriptionManager:
                     language="ur",
                     temperature=0,
                     prompt=(
-                        "Yeh ek business meeting hai jisme circular debt, power sector, "
-                        "distribution companies, aur generation sites ke baare mein "
-                        "baat ho rahi hai. IESCO aur FESCO jaise utilities ke "
-                        "problems discuss ho rahe hain. Payment aur debt ke issues "
-                        "par focus hai. Har sentence ko Roman Urdu mein transcribe karein."
-                        "Acha start karte hain ke sabse pehle koi bhi sector hai.."
+                        "Transcribe in Roman Urdu only. No Hindi script allowed. Example format:\n"
+                        "Acha to power sector ke baare mein baat kar rahe hain.\n"
+                        "IESCO aur FESCO ke losses discuss kar rahe hain.\n"
+                        "Circular debt ka masla hal karna hai.\n"
+                        "Tariff determination ke liye proper mechanism banana hai.\n"
+                        "Consumer end pe recovery improve karni hai.\n"
+                        "Distribution companies ki performance better karni hai.\n"
+                        "Smart metering system implement karna hai."
                     ),
                 )
 
