@@ -3,6 +3,7 @@ from transcription_manager import TranscriptionManager
 import tempfile
 import os
 from pydub import AudioSegment
+import gc
 
 def process_audio_oneshot(file_path):
     manager = TranscriptionManager()
