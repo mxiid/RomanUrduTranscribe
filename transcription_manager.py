@@ -33,10 +33,17 @@ class TranscriptionManager:
                     ),
                 )
 
+            # Get chunk start time in seconds
+            chunk_start_seconds = chunk_data['start_time'] / 1000  # Convert ms to seconds
+            
             formatted_text = ""
             for segment in transcription.segments:
-                start_time = str(timedelta(seconds=round(segment.start)))
-                end_time = str(timedelta(seconds=round(segment.end)))
+                # Add chunk start time to segment timestamps
+                actual_start = chunk_start_seconds + segment.start
+                actual_end = chunk_start_seconds + segment.end
+                
+                start_time = str(timedelta(seconds=round(actual_start)))
+                end_time = str(timedelta(seconds=round(actual_end)))
                 formatted_text += f"[{start_time} - {end_time}] {segment.text}\n"
 
             return {'text': formatted_text}
