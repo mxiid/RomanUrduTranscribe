@@ -61,6 +61,37 @@ def process_long_audio(file_path):
                     continue
             
             processed_chunks += 1
+        
+        # Combine all results
+        final_text = ""
+        for result in whisper_results:
+            final_text += result['text'] + "\n"
+            
+        st.success("Transcription completed!")
+        
+        # Create tabs for different viewing options
+        formatted_tab, raw_tab = st.tabs(["Formatted View", "Raw Text"])
+        
+        with formatted_tab:
+            st.markdown("### Whisper Transcription")
+            for line in final_text.split('\n'):
+                if line.strip():
+                    st.text(line)
+        
+        with raw_tab:
+            st.text(final_text)
+        
+        # Download button
+        st.download_button(
+            label="Download Transcription",
+            data=final_text,
+            file_name="whisper_transcription.txt",
+            mime="text/plain"
+        )
+        
+    except Exception as e:
+        st.error(f"Error in processing: {str(e)}")
+        return None
 
 def extract_context(text: str) -> str:
     """Extract meaningful context from the last few lines"""
