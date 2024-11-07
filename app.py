@@ -9,24 +9,19 @@ from pydub import AudioSegment
 import openai
 
 def process_long_audio(file_path):
-    # Initialize components with adjusted settings
-    splitter = AudioSplitter(max_size_mb=24, overlap_seconds=2)  # Reduced overlap
+    # Initialize with smaller chunks
+    splitter = AudioSplitter(max_size_mb=12, overlap_seconds=1)  # Reduced size and overlap
     manager = TranscriptionManager()
     
     try:
-        # Get total duration
         total_duration = splitter.get_audio_length(file_path)
+        minutes = total_duration / (60 * 1000)
+        chunk_count = math.ceil(minutes / 5)  # Keep 5-minute chunks as they worked well
         
-        # Calculate chunks based on minutes
-        minutes = total_duration / (60 * 1000)  # Convert ms to minutes
-        chunk_count = math.ceil(minutes / 5)  # 5-minute chunks
-        
-        # Create chunks generator
         chunks_generator = splitter.get_chunks_info(total_duration)
         
-        st.info(f"Audio will be processed in {chunk_count} chunks")
+        st.info(f"Audio will be processed in {chunk_count} chunks of 5 minutes each")
         
-        # Process chunks with progress bar
         progress_bar = st.progress(0)
         whisper_results = []
         gpt_results = []
@@ -34,39 +29,39 @@ def process_long_audio(file_path):
         
         processed_chunks = 0
         for start_ms, end_ms in chunks_generator:
-            # Update progress
             progress = min(0.99, processed_chunks / chunk_count)
             progress_bar.progress(progress)
             
-            # Process chunk
             with st.spinner(f'Processing chunk {processed_chunks + 1} of {chunk_count}...'):
                 try:
-                    # Load and process single chunk
                     chunk = splitter.load_chunk(file_path, start_ms, end_ms)
                     
-                    # Add our successful prompt to the chunk processing
-                    chunk['prompt'] = (
+                    # Add successful prompt with additional context from previous chunk
+                    context_prompt = (
+                        f"{previous_context}\n" if previous_context else ""
                         "Yeh ek business meeting hai jisme circular debt, power sector, "
                         "distribution companies, aur generation sites ke baare mein "
                         "baat ho rahi hai. IESCO aur FESCO jaise utilities ke "
                         "problems discuss ho rahe hain. Payment aur debt ke issues "
-                        "par focus hai."
+                        "par focus hai. Har sentence ko Roman Urdu mein transcribe karein."
                     )
+                    
+                    chunk['prompt'] = context_prompt
                     
                     # Get Whisper transcription
                     whisper_result = manager.transcribe_chunk(chunk, previous_context)
+                    
+                    # Check for recursion in the result
+                    if check_for_recursion(whisper_result['text']):
+                        st.warning(f"Detected potential recursion in chunk {processed_chunks + 1}. Retrying...")
+                        # Retry with modified prompt
+                        chunk['prompt'] = context_prompt + " Har line alag honi chahiye, repetition nahi honi chahiye."
+                        whisper_result = manager.transcribe_chunk(chunk, previous_context)
+                    
                     whisper_results.append(whisper_result)
                     
-                    # Get GPT-4 refined version
-                    gpt_result = manager.refine_chunk(whisper_result, previous_context)
-                    gpt_results.append(gpt_result)
-                    
-                    # Update context for next chunk
-                    previous_context = '\n'.join([
-                        line.split('] ')[-1] 
-                        for line in gpt_result['text'].split('\n')
-                        if line.strip()
-                    ])[-500:]  # Keep last 500 chars
+                    # Update context for next chunk - take last 2 meaningful lines
+                    previous_context = extract_context(whisper_result['text'])
                     
                     del chunk
                     gc.collect()
@@ -76,94 +71,42 @@ def process_long_audio(file_path):
                     continue
             
             processed_chunks += 1
-            
-            # Safety check - stop if we've processed more chunks than expected
-            if processed_chunks > chunk_count + 1:  # Allow for 1 extra chunk due to rounding
-                st.warning("Processed more chunks than expected. Please check the audio splitting logic.")
-                break
-        
-        # Combine results
-        whisper_transcription = combine_transcriptions(whisper_results)
-        gpt_transcription = combine_transcriptions(gpt_results)
-        
-        if whisper_transcription and gpt_transcription:
-            st.success("Transcription completed!")
-            
-            # Create tabs for different viewing options
-            whisper_tab, gpt_tab, raw_tab = st.tabs(["Whisper Output", "GPT Refined", "Raw Text"])
-            
-            with whisper_tab:
-                st.markdown("### Original Whisper Output")
-                for line in whisper_transcription.split('\n'):
-                    if line.strip():
-                        st.text(line)
-            
-            with gpt_tab:
-                st.markdown("### GPT-4 Refined Version")
-                for line in gpt_transcription.split('\n'):
-                    if line.strip():
-                        st.text(line)
-            
-            with raw_tab:
-                st.text(gpt_transcription)
-            
-            # Download buttons for both versions
-            col1, col2 = st.columns(2)
-            with col1:
-                st.download_button(
-                    label="Download Whisper Version",
-                    data=whisper_transcription,
-                    file_name="whisper_transcription.txt",
-                    mime="text/plain"
-                )
-            with col2:
-                st.download_button(
-                    label="Download GPT Version",
-                    data=gpt_transcription,
-                    file_name="gpt_transcription.txt",
-                    mime="text/plain"
-                )
-        
-    except Exception as e:
-        st.error(f"Error processing audio: {str(e)}")
-        return None
 
-def combine_transcriptions(transcription_results):
-    """Combine transcription chunks while handling overlaps"""
-    combined_lines = []
-    overlap_threshold = 30000  # 30 seconds in milliseconds
-    
-    for i, result in enumerate(transcription_results):
-        lines = result['text'].split('\n')
+def check_for_recursion(text: str) -> bool:
+    """Check if the transcription contains recursive patterns"""
+    lines = text.split('\n')
+    if len(lines) < 3:
+        return False
         
-        for line in lines:
-            if not line.strip():
-                continue
-                
-            # Parse timestamp and text
-            try:
-                timestamp_part = line[line.find('[')+1:line.find(']')]
-                start_time = parse_timestamp(timestamp_part.split(' - ')[0])
-                
-                # Check for overlap with previous lines
-                if combined_lines:
-                    prev_timestamp = combined_lines[-1][line.find('[')+1:line.find(']')]
-                    prev_end_time = parse_timestamp(prev_timestamp.split(' - ')[1])
-                    
-                    # Skip if too close to previous line
-                    if abs(start_time - prev_end_time) < overlap_threshold:
-                        continue
-                
-                combined_lines.append(line)
-            except:
-                continue
+    # Check for repeated phrases
+    seen_phrases = set()
+    repeated_count = 0
     
-    return '\n'.join(combined_lines)
+    for line in lines:
+        # Get the actual text without timestamp
+        text_part = line[line.find(']')+1:].strip()
+        if text_part in seen_phrases:
+            repeated_count += 1
+            if repeated_count > 2:  # Allow max 2 repetitions
+                return True
+        seen_phrases.add(text_part)
+    
+    return False
 
-def parse_timestamp(timestamp_str):
-    """Convert HH:MM:SS timestamp to milliseconds"""
-    h, m, s = map(int, timestamp_str.split(':'))
-    return (h * 3600 + m * 60 + s) * 1000
+def extract_context(text: str) -> str:
+    """Extract meaningful context from the last few lines"""
+    lines = [l for l in text.split('\n') if l.strip()]
+    if not lines:
+        return ""
+        
+    # Take last 2 meaningful lines without timestamps
+    context_lines = []
+    for line in lines[-2:]:
+        text_part = line[line.find(']')+1:].strip()
+        if text_part and not text_part.endswith('...'):
+            context_lines.append(text_part)
+    
+    return ' '.join(context_lines)
 
 def process_audio_oneshot(file_path):
     try:
