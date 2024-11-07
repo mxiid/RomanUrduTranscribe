@@ -25,19 +25,14 @@ class TranscriptionManager:
                     language="ur",  # Changed to English to force Latin script
                     temperature=0,
                     prompt=(
-                        "This is Urdu speech that must be transcribed in Roman letters only.\n"
-                        "Rules:\n"
-                        "1. Use English letters to write Urdu words\n"
-                        "2. Never use Hindi/Devanagari script\n"
-                        "3. Write like this:\n"
-                        "Bilkul sahi kaha aap ne\n"
-                        "Hamari company mein yeh process hai\n"
-                        "IESCO ke losses kam karne hain\n"
-                        "Generation capacity increase karni hai\n"
-                        "Circular debt ko resolve karna hai\n"
-                        "Consumer payments improve karni hain\n"
-                        "Distribution losses ko kam karna hai\n"
-                        "Tariff determination ka process fix karna hai"
+                        """
+                        Yeh ek business meeting hai jisme circular debt, power sector, 
+                        distribution companies, aur generation sites ke baare mein
+                        baat ho rahi hai. IESCO aur FESCO jaise utilities ke
+                        problems discuss ho rahe hain. Payment aur debt ke issues
+                        par focus hai. Isko aap Urdu mein transcribe karein aur jahan angrezi ki alfaaz hain unko as it is rakhein.
+                        """
+                        
                     ),
                 )
 
