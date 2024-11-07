@@ -26,11 +26,7 @@ class TranscriptionManager:
                     temperature=0,
                     prompt=(
                         """
-                        Yeh ek business meeting hai jisme circular debt, power sector, 
-                        distribution companies, aur generation sites ke baare mein
-                        baat ho rahi hai. IESCO aur FESCO jaise utilities ke
-                        problems discuss ho rahe hain. Payment aur debt ke issues
-                        par focus hai. Isko aap Urdu mein transcribe karein aur jahan angrezi ki alfaaz hain unko as it is rakhein.
+                        Yeh ek business meeting hai jisme circular debt, power sector, distribution companies, aur generation sites ke baare meinbaat ho rahi hai. IESCO aur FESCO jaise utilities ke problems discuss ho rahe hain. Payment aur debt ke issues par focus hai. Isko aap Urdu mein transcribe karein aur jahan angrezi ki alfaaz hain unko as it is rakhein.
                         """
                         
                     ),
