@@ -28,19 +28,20 @@ class TranscriptionManager:
             chunk_data['audio'].export(temp_path, format="wav")
             
             with open(temp_path, "rb") as file:
+                # Add more context about the business terms and prevent repetition
                 transcription = openai.audio.transcriptions.create(
                     model="whisper-1",
                     file=file,
                     response_format="verbose_json",
                     language="hi",
-                    temperature=0.2,
-                    prompt=chunk_data.get('prompt', (
-                        "Acha, toh aap business ke baare mein baat kar rahe hain. "
-                        "Main samajh rahi hoon. Market research ke mutabiq... "
-                        "Hamari company mein yeh process follow kiya jata hai. "
-                        "Stakeholders ko inform karna zaroori hai."
-                        "IESCO, FESCO"
-                    ))
+                    temperature=0.0,  # Make it more deterministic
+                    prompt=(
+                        "Yeh ek business meeting hai jisme circular debt, power sector, "
+                        "distribution companies, aur generation sites ke baare mein "
+                        "baat ho rahi hai. IESCO aur FESCO jaise utilities ke "
+                        "problems discuss ho rahe hain. Payment aur debt ke issues "
+                        "par focus hai."
+                    )
                 )
             
             # Format the transcription with timestamps

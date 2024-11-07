@@ -46,11 +46,11 @@ def process_long_audio(file_path):
                     
                     # Add our successful prompt to the chunk processing
                     chunk['prompt'] = (
-                        "Acha, toh aap business ke baare mein baat kar rahe hain. "
-                        "Main samajh rahi hoon. Market research ke mutabiq... "
-                        "Hamari company mein yeh process follow kiya jata hai. "
-                        "Stakeholders ko inform karna zaroori hai."
-                        "IESCO, FESCO"
+                        "Yeh ek business meeting hai jisme circular debt, power sector, "
+                        "distribution companies, aur generation sites ke baare mein "
+                        "baat ho rahi hai. IESCO aur FESCO jaise utilities ke "
+                        "problems discuss ho rahe hain. Payment aur debt ke issues "
+                        "par focus hai."
                     )
                     
                     # Get Whisper transcription
