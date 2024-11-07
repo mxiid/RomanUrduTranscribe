@@ -12,8 +12,8 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 class TranscriptionManager:
     def transcribe_chunk(self, chunk_data: Dict) -> Dict:
-        """Just transcribe the chunk"""
-        temp_path = f"temp_chunk_{chunk_data['start_time']}.wav"
+        """Transcribe the entire audio file"""
+        temp_path = "temp_transcription.wav"
         try:
             chunk_data['audio'].export(temp_path, format="wav")
             
@@ -22,20 +22,15 @@ class TranscriptionManager:
                     model="whisper-1",
                     file=file,
                     response_format="verbose_json",
-                    language="hi",
-                    temperature=0.2,
-                    prompt=("Yeh ek business meeting hai jisme circular debt, power sector, "
-                        "distribution companies, aur generation sites ke baare mein "
-                        "baat ho rahi hai. IESCO aur FESCO jaise utilities ke "
-                        "problems discuss ho rahe hain. Payment aur debt ke issues "
-                        "par focus hai."
-                    )
+                    language="ur",
+                    temperature=0,
+                    prompt="Transcribe this audio file in Urdu while retaining English terms."
                 )
             
             formatted_text = ""
             for segment in transcription.segments:
-                start_time = str(timedelta(seconds=round(segment.start + chunk_data['start_time']/1000)))
-                end_time = str(timedelta(seconds=round(segment.end + chunk_data['start_time']/1000)))
+                start_time = str(timedelta(seconds=round(segment.start)))
+                end_time = str(timedelta(seconds=round(segment.end)))
                 formatted_text += f"[{start_time} - {end_time}] {segment.text}\n"
             
             return {'text': formatted_text}
@@ -43,14 +38,20 @@ class TranscriptionManager:
         finally:
             Path(temp_path).unlink(missing_ok=True)
 
-    def refine_chunk(self, chunk_result: Dict, previous_context: str = "") -> Dict:
+    def refine_chunk(self, chunk_result: Dict) -> Dict:
         """Refine with GPT-4"""
         try:
             response = openai.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "You are a Roman Urdu transcription refiner..."},
-                    {"role": "user", "content": f"Previous: {previous_context}\n\nRefine: {chunk_result['text']}"}
+                    {"role": "system", "content": 
+                     "You are a Roman Urdu transcription refiner for business audio.\n"
+                     "Rules:\n"
+                     "1. Keep the exact timestamp format: [HH:MM:SS - HH:MM:SS]\n"
+                     "2. Ensure complete, grammatical sentences\n"
+                     "3. Use Roman Urdu with English technical terms\n"
+                     "4. Maintain natural conversation flow"},
+                    {"role": "user", "content": f"Refine this transcription:\n{chunk_result['text']}"}
                 ],
                 temperature=0
             )
