@@ -10,67 +10,95 @@ import openai
 
 def process_long_audio(file_path):
     # Initialize with smaller chunks
-    splitter = AudioSplitter(max_size_mb=12, overlap_seconds=1)  # Reduced size and overlap
+    splitter = AudioSplitter(max_size_mb=12, overlap_seconds=1)
     manager = TranscriptionManager()
-    
+
     try:
         total_duration = splitter.get_audio_length(file_path)
         minutes = total_duration / (60 * 1000)
-        chunk_count = math.ceil(minutes / 5)  # Keep 5-minute chunks as they worked well
-        
+        chunk_count = math.ceil(minutes / 5)
+
         chunks_generator = splitter.get_chunks_info(total_duration)
-        
+
         st.info(f"Audio will be processed in {chunk_count} chunks of 5 minutes each")
-        
+
         progress_bar = st.progress(0)
         whisper_results = []
-        gpt_results = []
         previous_context = ""
-        
+
         processed_chunks = 0
         for start_ms, end_ms in chunks_generator:
             progress = min(0.99, processed_chunks / chunk_count)
             progress_bar.progress(progress)
-            
+
             with st.spinner(f'Processing chunk {processed_chunks + 1} of {chunk_count}...'):
                 try:
                     chunk = splitter.load_chunk(file_path, start_ms, end_ms)
-                    
-                    # Add successful prompt with additional context from previous chunk
-                    context_prompt = (
-                        f"{previous_context}\n" if previous_context else ""
+
+                    # Simple prompt for Whisper - just focus on transcription
+                    chunk["prompt"] = (
                         "Yeh ek business meeting hai jisme circular debt, power sector, "
                         "distribution companies, aur generation sites ke baare mein "
                         "baat ho rahi hai. IESCO aur FESCO jaise utilities ke "
                         "problems discuss ho rahe hain. Payment aur debt ke issues "
                         "par focus hai. Har sentence ko Roman Urdu mein transcribe karein."
                     )
-                    
-                    chunk['prompt'] = context_prompt
-                    
+
                     # Get Whisper transcription
-                    whisper_result = manager.transcribe_chunk(chunk, previous_context)
-                    
+                    whisper_result = manager.transcribe_chunk(chunk)  # No context passed
+
                     # Check for recursion in the result
                     if check_for_recursion(whisper_result['text']):
                         st.warning(f"Detected potential recursion in chunk {processed_chunks + 1}. Retrying...")
-                        # Retry with modified prompt
-                        chunk['prompt'] = context_prompt + " Har line alag honi chahiye, repetition nahi honi chahiye."
-                        whisper_result = manager.transcribe_chunk(chunk, previous_context)
-                    
-                    whisper_results.append(whisper_result)
-                    
-                    # Update context for next chunk - take last 2 meaningful lines
-                    previous_context = extract_context(whisper_result['text'])
-                    
+                        chunk['prompt'] = "Har line alag honi chahiye, repetition nahi honi chahiye."
+                        whisper_result = manager.transcribe_chunk(chunk)  # Retry without context
+
+                    # Now pass context to GPT for refinement
+                    refined_result = manager.refine_chunk(whisper_result, previous_context)
+                    whisper_results.append(refined_result)
+
+                    # Update context for next chunk from refined result
+                    previous_context = extract_context(refined_result['text'])
+
                     del chunk
                     gc.collect()
-                    
+
                 except Exception as e:
                     st.error(f"Error processing chunk {processed_chunks + 1}: {str(e)}")
                     continue
-            
+
             processed_chunks += 1
+
+        # Combine all results
+        final_text = ""
+        for result in whisper_results:
+            final_text += result['text'] + "\n"
+
+        st.success("Transcription completed!")
+
+        # Create tabs for different viewing options
+        formatted_tab, raw_tab = st.tabs(["Formatted View", "Raw Text"])
+
+        with formatted_tab:
+            st.markdown("### Whisper Transcription")
+            for line in final_text.split('\n'):
+                if line.strip():
+                    st.text(line)
+
+        with raw_tab:
+            st.text(final_text)
+
+        # Download button
+        st.download_button(
+            label="Download Transcription",
+            data=final_text,
+            file_name="whisper_transcription.txt",
+            mime="text/plain"
+        )
+
+    except Exception as e:
+        st.error(f"Error in processing: {str(e)}")
+        return None
 
 def check_for_recursion(text: str) -> bool:
     """Check if the transcription contains recursive patterns"""
