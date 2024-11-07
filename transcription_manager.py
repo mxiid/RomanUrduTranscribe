@@ -16,7 +16,7 @@ class TranscriptionManager:
         temp_path = "temp_transcription.wav"
         try:
             chunk_data['audio'].export(temp_path, format="wav")
-            
+
             with open(temp_path, "rb") as file:
                 transcription = openai.audio.transcriptions.create(
                     model="whisper-1",
@@ -24,17 +24,23 @@ class TranscriptionManager:
                     response_format="verbose_json",
                     language="ur",
                     temperature=0,
-                    prompt="Transcribe this audio file in Urdu while retaining English terms."
+                    prompt=(
+                        "Yeh ek business meeting hai jisme circular debt, power sector, "
+                        "distribution companies, aur generation sites ke baare mein "
+                        "baat ho rahi hai. IESCO aur FESCO jaise utilities ke "
+                        "problems discuss ho rahe hain. Payment aur debt ke issues "
+                        "par focus hai. Har sentence ko Roman Urdu mein transcribe karein."
+                    ),
                 )
-            
+
             formatted_text = ""
             for segment in transcription.segments:
                 start_time = str(timedelta(seconds=round(segment.start)))
                 end_time = str(timedelta(seconds=round(segment.end)))
                 formatted_text += f"[{start_time} - {end_time}] {segment.text}\n"
-            
+
             return {'text': formatted_text}
-            
+
         finally:
             Path(temp_path).unlink(missing_ok=True)
 
@@ -55,9 +61,9 @@ class TranscriptionManager:
                 ],
                 temperature=0
             )
-            
+
             return {'text': response.choices[0].message.content}
-            
+
         except Exception as e:
             print(f"GPT-4 refinement error: {str(e)}")
             return chunk_result
