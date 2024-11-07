@@ -15,29 +15,42 @@ def process_audio_in_chunks(file_path):
     try:
         # Get total duration and calculate chunks
         total_duration = splitter.get_audio_length(file_path)
-        chunk_count = math.ceil(total_duration / (5 * 60 * 1000))  # 5-minute chunks
+        chunk_count = math.ceil(total_duration / (5 * 60 * 1000)) + 1  # Add buffer of 1
         
         st.info(f"Step 1: Splitting and transcribing {chunk_count} chunks...")
         progress_bar = st.progress(0)
+        
+        # Create directory for chunk transcriptions if it doesn't exist
+        os.makedirs("chunk_transcriptions", exist_ok=True)
         
         # Store transcriptions
         transcriptions = []
         
         for i, (start_ms, end_ms) in enumerate(splitter.get_chunks_info(total_duration)):
+            # Ensure progress never exceeds 1.0
+            progress = min(0.99, (i + 1) / chunk_count)
+            progress_bar.progress(progress)
+            
             with st.spinner(f'Processing chunk {i + 1} of {chunk_count}...'):
-                # Load and transcribe chunk
                 chunk = splitter.load_chunk(file_path, start_ms, end_ms)
                 result = manager.transcribe_chunk(chunk)
                 transcriptions.append(result)
                 
-                # Update progress
-                progress_bar.progress((i + 1) / chunk_count)
+                # Save individual chunk transcription
+                chunk_file = f"chunk_transcriptions/chunk_{i+1}_of_{chunk_count}.txt"
+                with open(chunk_file, 'w') as f:
+                    f.write(f"Chunk {i+1} of {chunk_count}\n")
+                    f.write(f"Time range: {start_ms/1000:.2f}s to {end_ms/1000:.2f}s\n")
+                    f.write("-" * 50 + "\n")
+                    f.write(result['text'])
                 
-                # Clean up
+                # Show path to saved file
+                st.info(f"Saved chunk transcription to: {chunk_file}")
+                
                 del chunk
                 gc.collect()
         
-        # Save transcriptions to temporary file
+        # Save complete raw transcription
         temp_path = "raw_transcriptions.txt"
         with open(temp_path, 'w') as f:
             for t in transcriptions:
