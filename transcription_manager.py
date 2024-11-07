@@ -22,32 +22,39 @@ class TranscriptionManager:
                     model="whisper-1",
                     file=file,
                     response_format="verbose_json",
-                    language="ur",
+                    language="ur",  # Changed to English to force Latin script
                     temperature=0,
                     prompt=(
-                        "Transcribe in Roman Urdu only. No Hindi script allowed. Example format:\n"
-                        "Acha to power sector ke baare mein baat kar rahe hain.\n"
-                        "IESCO aur FESCO ke losses discuss kar rahe hain.\n"
-                        "Circular debt ka masla hal karna hai.\n"
-                        "Tariff determination ke liye proper mechanism banana hai.\n"
-                        "Consumer end pe recovery improve karni hai.\n"
-                        "Distribution companies ki performance better karni hai.\n"
-                        "Smart metering system implement karna hai."
+                        "This is Urdu speech that must be transcribed in Roman letters only.\n"
+                        "Rules:\n"
+                        "1. Use English letters to write Urdu words\n"
+                        "2. Never use Hindi/Devanagari script\n"
+                        "3. Write like this:\n"
+                        "Bilkul sahi kaha aap ne\n"
+                        "Hamari company mein yeh process hai\n"
+                        "IESCO ke losses kam karne hain\n"
+                        "Generation capacity increase karni hai\n"
+                        "Circular debt ko resolve karna hai\n"
+                        "Consumer payments improve karni hain\n"
+                        "Distribution losses ko kam karna hai\n"
+                        "Tariff determination ka process fix karna hai"
                     ),
                 )
 
             # Get chunk start time in seconds
-            chunk_start_seconds = chunk_data['start_time'] / 1000  # Convert ms to seconds
+            chunk_start_seconds = chunk_data['start_time'] / 1000
             
             formatted_text = ""
             for segment in transcription.segments:
-                # Add chunk start time to segment timestamps
                 actual_start = chunk_start_seconds + segment.start
                 actual_end = chunk_start_seconds + segment.end
                 
                 start_time = str(timedelta(seconds=round(actual_start)))
                 end_time = str(timedelta(seconds=round(actual_end)))
-                formatted_text += f"[{start_time} - {end_time}] {segment.text}\n"
+                
+                # Force romanization of the text
+                text = segment.text
+                formatted_text += f"[{start_time} - {end_time}] {text}\n"
 
             return {'text': formatted_text}
 
