@@ -10,7 +10,7 @@ import openai
 
 def process_long_audio(file_path):
     # Initialize components with adjusted settings
-    splitter = AudioSplitter(max_size_mb=24, overlap_seconds=10)
+    splitter = AudioSplitter(max_size_mb=24, overlap_seconds=2)  # Reduced overlap
     manager = TranscriptionManager()
     
     try:
@@ -19,7 +19,7 @@ def process_long_audio(file_path):
         
         # Calculate chunks based on minutes
         minutes = total_duration / (60 * 1000)  # Convert ms to minutes
-        chunk_count = math.ceil(minutes / 10)  # Changed to 10-minute chunks
+        chunk_count = math.ceil(minutes / 5)  # 5-minute chunks
         
         # Create chunks generator
         chunks_generator = splitter.get_chunks_info(total_duration)
@@ -44,6 +44,15 @@ def process_long_audio(file_path):
                     # Load and process single chunk
                     chunk = splitter.load_chunk(file_path, start_ms, end_ms)
                     
+                    # Add our successful prompt to the chunk processing
+                    chunk['prompt'] = (
+                        "Acha, toh aap business ke baare mein baat kar rahe hain. "
+                        "Main samajh rahi hoon. Market research ke mutabiq... "
+                        "Hamari company mein yeh process follow kiya jata hai. "
+                        "Stakeholders ko inform karna zaroori hai."
+                        "IESCO, FESCO"
+                    )
+                    
                     # Get Whisper transcription
                     whisper_result = manager.transcribe_chunk(chunk, previous_context)
                     whisper_results.append(whisper_result)
@@ -57,7 +66,7 @@ def process_long_audio(file_path):
                         line.split('] ')[-1] 
                         for line in gpt_result['text'].split('\n')
                         if line.strip()
-                    ])[-500:]
+                    ])[-500:]  # Keep last 500 chars
                     
                     del chunk
                     gc.collect()
@@ -207,6 +216,7 @@ def process_audio_oneshot(file_path):
                             "Main samajh rahi hoon. Market research ke mutabiq... "
                             "Hamari company mein yeh process follow kiya jata hai. "
                             "Stakeholders ko inform karna zaroori hai."
+                            "IESCO, FESCO"
                         )
                     )
                 
