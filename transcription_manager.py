@@ -45,7 +45,7 @@ class TranscriptionManager:
                 model="gpt-4o",
                 messages=[
                     {"role": "system", "content": 
-                     "You are a Roman Urdu transcription refiner for business audio.\n"
+                     "You are a Urdu transcription to Roman Urdu refiner for business audio.\n"
                      "Rules:\n"
                      "1. Keep the exact timestamp format: [HH:MM:SS - HH:MM:SS]\n"
                      "2. Ensure complete, grammatical sentences\n"
