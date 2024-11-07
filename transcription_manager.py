@@ -22,14 +22,8 @@ class TranscriptionManager:
                     model="whisper-1",
                     file=file,
                     response_format="verbose_json",
-                    language="ur",  # Changed to English to force Latin script
                     temperature=0,
-                    prompt=(
-                        """
-                        Yeh ek business meeting hai jisme circular debt, power sector, distribution companies, aur generation sites ke baare meinbaat ho rahi hai. IESCO aur FESCO jaise utilities ke problems discuss ho rahe hain. Payment aur debt ke issues par focus hai. Isko aap Urdu mein transcribe karein aur jahan angrezi ki alfaaz hain unko as it is rakhein.
-                        """
-                        
-                    ),
+                    prompt="Transcribe this Urdu audio while retaining any English terms/words"
                 )
 
             # Get chunk start time in seconds
